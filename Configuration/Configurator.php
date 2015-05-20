@@ -25,15 +25,16 @@ class Configurator
     private $defaultEntityFields = array();
 
     private $defaultEntityFieldConfiguration = array(
-        'class'     => null,  // CSS class or classes applied to form field
-        'format'    => null,  // date/time/datetime/number format applied to form field value
-        'help'      => null,  // form field help message
-        'label'     => null,  // form field label (if 'null', autogenerate it)
-        'type'      => null,  // its value matches the value of 'dataType' for list/show and the value of 'fieldType' for new/edit
-        'fieldType' => null,  // Symfony form field type (text, date, number, choice, ...) used to display the field
-        'dataType'  => null,  // Data type (text, date, integer, boolean, ...) of the Doctrine property associated with the field
-        'virtual'   => false, // is a virtual field or a real Doctrine entity property?
-        'sortable'  => true,  // listings can be sorted according to the values of this field
+        'class'        => null,    // CSS class or classes applied to form field
+        'format'       => null,    // date/time/datetime/number format applied to form field value
+        'help'         => null,    // form field help message
+        'label'        => null,    // form field label (if 'null', autogenerate it)
+        'type'         => null,    // its value matches the value of 'dataType' for list/show and the value of 'fieldType' for new/edit
+        'fieldType'    => null,    // Symfony form field type (text, date, number, choice, ...) used to display the field
+        'dataType'     => null,    // Data type (text, date, integer, boolean, ...) of the Doctrine property associated with the field
+        'virtual'      => false,   // is a virtual field or a real Doctrine entity property?
+        'sortable'     => true,    // listings can be sorted according to the values of this field
+        'type_options' => array(), // the Symfony Form Type options used to build the form field
     );
 
     private $doctrineTypeToFormTypeMap = array(

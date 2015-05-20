@@ -308,6 +308,28 @@ These are the options that you can define for each field:
       * `toggle`, displays a boolean value as a flip switch in the `list`
         and `search` views (as explained later in this chapter).
 
+  * `type_options` (optional), a hash which can include any of the valid
+    options defined for the Symfony Form type used by the field.
+
+The `type_options` is the most powerful option because it literally comprises
+tens of options suited for each form type:
+
+```yaml
+easy_admin:
+    entities:
+        Customer:
+            class: AppBundle\Entity\Customer
+            form:
+                fields:
+                    - 'id'
+                    - { property: 'email', type: 'email', type_options: { trim: true } }
+                    - { property: 'interests', type_options: { expanded: true, multiple: true } }
+                    - { property: 'updated_at', type_options: { read_only: true } }
+```
+
+Read the [Symfony Form type reference](http://symfony.com/doc/current/reference/forms/types.html)
+to learn about all the available options, their usage and allowed values.
+
 ### Translate Property Labels
 
 In order to translate the labels to the application language, use translation
