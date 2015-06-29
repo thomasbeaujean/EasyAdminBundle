@@ -149,12 +149,6 @@ class Configuration implements ConfigurationInterface
                     ->end()
                 ->end()
 
-                ->arrayNode('exception_listener')
-                    ->addDefaultsIfNotSet()
-                    ->children()
-                        ->booleanNode('enabled')->defaultNull()->end()
-                    ->end()
-                ->end()
             ->end()
         ;
     }
@@ -201,6 +195,11 @@ class Configuration implements ConfigurationInterface
                         ->ifTrue(function ($v) { return false === is_array($v); })
                         ->thenInvalid('The disabled_actions option must be an array of action names.')
                     ->end()
+                ->end()
+
+                ->booleanNode('catch_exceptions')
+                    ->info('If true, EasyAdmin displays its own exception pages. Otherwise, display Symfony\'s exception pages.')
+                    ->defaultValue(true)
                 ->end()
             ->end()
         ;
