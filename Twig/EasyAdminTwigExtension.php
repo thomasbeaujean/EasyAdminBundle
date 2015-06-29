@@ -44,18 +44,6 @@ class EasyAdminTwigExtension extends \Twig_Extension
     }
 
     /**
-     * @see \JavierEguiluz\Bundle\EasyAdminBundle\Configuration\Configurator::get()
-     *
-     * @param string|null $key
-     *
-     * @return mixed
-     */
-    public function getBackendConfiguration($key = null)
-    {
-        return $this->configurator->get($key);
-    }
-
-    /**
      * Returns the entire configuration of the given entity.
      *
      * @param string $entityName
@@ -64,7 +52,7 @@ class EasyAdminTwigExtension extends \Twig_Extension
      */
     public function getEntityConfiguration($entityName)
     {
-        return null !== $this->getBackendConfiguration('entities.'.$entityName)
+        return null !== $this->configurator->get('entities.'.$entityName)
             ? $this->configurator->getEntityConfiguration($entityName)
             : null;
     }
@@ -274,5 +262,17 @@ class EasyAdminTwigExtension extends \Twig_Extension
     public function getName()
     {
         return 'easyadmin_extension';
+    }
+
+    /**
+     * @deprecated use \JavierEguiluz\Bundle\EasyAdminBundle\Configuration\Configurator::get()
+     *
+     * @param string|null $key
+     *
+     * @return mixed
+     */
+    public function getBackendConfiguration($key = null)
+    {
+        return $this->configurator->get($key);
     }
 }
