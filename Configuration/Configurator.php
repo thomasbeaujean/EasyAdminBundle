@@ -485,9 +485,10 @@ class Configurator
     }
 
     /**
-     * Returns the entire backend configuration or the value corresponding to
-     * the provided key. The dots of the key are automatically transformed into
-     * nested keys. Example: 'assets.css' => $config['assets']['css']
+     * Returns the value corresponding to the given configuration key. The dots
+     * of the key are automatically transformed into nested keys. Example:
+     *   'assets.css' => $config['assets']['css']
+     * If the 'key' is null, the entire backend configuration is returned.
      *
      * @param string|null $key
      *
