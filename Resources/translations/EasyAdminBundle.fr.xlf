@@ -112,7 +112,15 @@
             <trans-unit id="errors">
                 <source>errors</source>
                 <target>{1}ERREUR|]1,Inf]ERREURS</target>
-            </trans-unit>            
+            </trans-unit>
+            <trans-unit id="action.add_new_item">
+                <source>action.add_new_item</source>
+                <target>Ajouter un nouvel élément</target>
+            </trans-unit>
+            <trans-unit id="action.add_another_item">
+                <source>action.add_another_item</source>
+                <target>Ajouter un autre élément</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
