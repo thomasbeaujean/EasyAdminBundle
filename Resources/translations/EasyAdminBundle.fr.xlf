@@ -121,6 +121,12 @@
                 <source>action.add_another_item</source>
                 <target>Ajouter un autre élément</target>
             </trans-unit>
+
+            <!-- form labels -->
+            <trans-unit id="form.repeated.seize_again">
+                <source>form.repeated.seize_again</source>
+                <target>Ressaisir</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
