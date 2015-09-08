@@ -109,10 +109,6 @@
                 <source>delete_modal.content</source>
                 <target>There is no undo for this operation.</target>
             </trans-unit>
-            <trans-unit id="errors">
-                <source>errors</source>
-                <target>{1}ERROR|]1,Inf]ERRORS</target>
-            </trans-unit>
             <trans-unit id="action.add_new_item">
                 <source>action.add_new_item</source>
                 <target>Add a new item</target>
@@ -121,6 +117,9 @@
                 <source>action.add_another_item</source>
                 <target>Add another item</target>
             </trans-unit>
+            <trans-unit id="errors">
+                <source>errors</source>
+                <target>Error|Errors</target>
 
             <!-- form labels -->
             <trans-unit id="form.repeated.seize_again">
