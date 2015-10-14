@@ -2,9 +2,31 @@ easy_admin:
     entities:
         TestEntity:
             class: AppBundle\Entity\TestEntity
+            form:
+                form_options:
+                    validation_groups:
+                        - Default
+                        - my_validation_group
             label: TestEntity
             name: TestEntity
+            new:
+                form_options:
+                    validation_groups:
+                        - Default
+                        - my_validation_group
+                fields: {  }
+                actions:
+                    list:
+                        name: list
+                        type: method
+                        label: action.list
+                        class: ''
+                        icon: null
             edit:
+                form_options:
+                    validation_groups:
+                        - Default
+                        - my_validation_group
                 fields: {  }
                 actions:
                     delete:
@@ -115,6 +137,8 @@ easy_admin:
                 label_inaccessible: '@EasyAdmin/default/label_inaccessible.html.twig'
                 label_null: '@EasyAdmin/default/label_null.html.twig'
                 label_undefined: '@EasyAdmin/default/label_undefined.html.twig'
+                flash_messages: '@EasyAdmin/default/flash_messages.html.twig'
+                field_raw: '@EasyAdmin/default/field_raw.html.twig'
     design:
         assets:
             css: {  }

@@ -4,5 +4,9 @@
 # CONFIGURATION
 easy_admin:
     entities:
+        TestEntity:
+            class: AppBundle\Entity\TestEntity
+            form:
+                form_options: { validation_groups: ['Default', 'my_validation_group'] }
         - AppBundle\Entity\TestEntity
     automatic_translation: true
