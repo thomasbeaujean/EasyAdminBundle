@@ -586,6 +586,7 @@ class AdminController extends Controller
 
         foreach ($entityProperties as $name => $metadata) {
             $formFieldOptions = $metadata['type_options'];
+        }
 
         return $formBuilder->getForm();
     }
@@ -602,19 +603,18 @@ class AdminController extends Controller
     {
         $formFieldOptions = array();
 
-            if ('collection' === $metadata['fieldType']) {
-                if (!isset($formFieldOptions['allow_add'])) {
-                    $formFieldOptions['allow_add'] = true;
-                }
+        if ('collection' === $metadata['fieldType']) {
+            if (!isset($formFieldOptions['allow_add'])) {
+                $formFieldOptions['allow_add'] = true;
+            }
 
-                if (!isset($formFieldOptions['allow_delete'])) {
-                    $formFieldOptions['allow_delete'] = true;
-                }
+            if (!isset($formFieldOptions['allow_delete'])) {
+                $formFieldOptions['allow_delete'] = true;
+            }
 
-                if (version_compare(\Symfony\Component\HttpKernel\Kernel::VERSION, '2.5.0', '>=')) {
-                    if (!isset($formFieldOptions['delete_empty'])) {
-                        $formFieldOptions['delete_empty'] = true;
-                    }
+            if (version_compare(\Symfony\Component\HttpKernel\Kernel::VERSION, '2.5.0', '>=')) {
+                if (!isset($formFieldOptions['delete_empty'])) {
+                    $formFieldOptions['delete_empty'] = true;
                 }
             }
         }
