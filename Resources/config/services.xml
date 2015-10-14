@@ -37,10 +37,5 @@
             <tag name="data_collector" template="@EasyAdmin/data_collector/easyadmin.html.twig" id="easyadmin" />
         </service>
 
-        <service id="easyadmin.translation.entity_translation" class="JavierEguiluz\Bundle\EasyAdminBundle\Translation\EntityTranslation">
-            <argument>%easyadmin.config%</argument>
-            <argument type="service" id="easyadmin.configurator"></argument>
-        </service>
-
     </services>
 </container>
