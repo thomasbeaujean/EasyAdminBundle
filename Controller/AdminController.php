@@ -586,73 +586,32 @@ class AdminController extends Controller
 
         foreach ($entityProperties as $name => $metadata) {
             $formFieldOptions = $metadata['type_options'];
-        }
 
-        return $formBuilder->getForm();
-    }
-
-    /**
-     * Create a field for a create form
-     *
-     * @param FormBuilder $formBuilder
-     * @param string        $name
-     * @param array       $metadata
-     * @return null
-     */
-    protected function createEntityFormField(FormBuilder $formBuilder, $name, array $metadata)
-    {
-        $formFieldOptions = array();
-
-        if ('collection' === $metadata['fieldType']) {
-            if (!isset($formFieldOptions['allow_add'])) {
-                $formFieldOptions['allow_add'] = true;
+            if ('association' === $metadata['fieldType'] && in_array($metadata['associationType'], array(ClassMetadataInfo::ONE_TO_MANY, ClassMetadataInfo::MANY_TO_MANY))) {
+                continue;
             }
 
-            if (!isset($formFieldOptions['allow_delete'])) {
-                $formFieldOptions['allow_delete'] = true;
-            }
+            if ('collection' === $metadata['fieldType']) {
+                if (!isset($formFieldOptions['allow_add'])) {
+                    $formFieldOptions['allow_add'] = true;
+                }
 
-            if (version_compare(\Symfony\Component\HttpKernel\Kernel::VERSION, '2.5.0', '>=')) {
-                if (!isset($formFieldOptions['delete_empty'])) {
-                    $formFieldOptions['delete_empty'] = true;
+                if (!isset($formFieldOptions['allow_delete'])) {
+                    $formFieldOptions['allow_delete'] = true;
+                }
+
+                if (version_compare(\Symfony\Component\HttpKernel\Kernel::VERSION, '2.5.0', '>=')) {
+                    if (!isset($formFieldOptions['delete_empty'])) {
+                        $formFieldOptions['delete_empty'] = true;
+                    }
                 }
             }
-        }
 
-        //if the repeated options has been activated
-        if (isset($metadata['repeated']) && (true === $metadata['repeated'])) {
-            $fieldType = 'repeated';
-            $formFieldOptions = $this->getFieldRepeatedOptions($metadata);
-        }
+            $formFieldOptions['attr']['field_type'] = $metadata['fieldType'];
+            $formFieldOptions['attr']['field_css_class'] = $metadata['class'];
+            $formFieldOptions['attr']['field_help'] = $metadata['help'];
 
-        $formFieldOptions['attr']['field_type'] = $fieldType;
-        $formFieldOptions['attr']['field_css_class'] = $metadata['class'];
-        $formFieldOptions['attr']['field_help'] = $metadata['help'];
-
-        $formBuilder->add($name, $fieldType, $formFieldOptions);
-    }
-
-    /**
-     * Get the options required for a repeated field
-     *
-     * @param array $metadata
-     *
-     * @return array
-     */
-    protected function getFieldRepeatedOptions(array $metadata)
-    {
-        $formFieldOptions = array(
-            'type' => $metadata['fieldType'],
-            'options' => array('required' => true),
-            'first_options'  => array('label' => $metadata['label']),
-        );
-
-        if (isset($metadata['repeated_label'])) {
-            $formFieldOptions['second_options'] = array('label' => $metadata['repeated_label']);
-        }
-
-        if (isset($metadata['invalid_message'])) {
-            $formFieldOptions['invalid_message'] = $metadata['invalid_message'];
+            $formBuilder->add($name, $metadata['fieldType'], $formFieldOptions);
         }
 
         return $formBuilder;
