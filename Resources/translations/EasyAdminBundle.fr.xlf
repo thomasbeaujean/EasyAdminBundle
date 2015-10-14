@@ -101,23 +101,6 @@
                 <source>errors</source>
                 <target>Erreur|Erreurs</target>
             </trans-unit>
-            <!-- form labels -->
-            <trans-unit id="form.repeated.seize_again">
-                <source>form.repeated.seize_again</source>
-                <target>Ressaisir</target>
-            </trans-unit>
-            <trans-unit id="boolean.true">
-                <source>boolean.true</source>
-                <target>Oui</target>
-            </trans-unit>
-            <trans-unit id="boolean.false">
-                <source>boolean.false</source>
-                <target>Non</target>
-            </trans-unit>
-            <trans-unit id="null.label">
-                <source>null.label</source>
-                <target>Aucun</target>
-            </trans-unit>
         </body>
     </file>
 </xliff>
