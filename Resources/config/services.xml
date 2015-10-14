@@ -36,17 +36,11 @@
             <argument type="service" id="easyadmin.configurator"></argument>
             <tag name="data_collector" template="@EasyAdmin/data_collector/easyadmin.html.twig" id="easyadmin" />
         </service>
-        
+
         <service id="easyadmin.translation.entity_translation" class="JavierEguiluz\Bundle\EasyAdminBundle\Translation\EntityTranslation">
             <argument>%easyadmin.config%</argument>
             <argument type="service" id="easyadmin.configurator"></argument>
         </service>
-        
-        <service id="easyadmin.translation.entity_extractor" class="JavierEguiluz\Bundle\EasyAdminBundle\Translation\EntityExtractor">
-            <argument type="service" id="easyadmin.translation.entity_translation"></argument>
-            <argument>EasyAdminBundle</argument>            
-            <tag name="translation.extractor" alias="easyadmin_translation_entity_extractor" />
-        </service>
-        
+
     </services>
 </container>
