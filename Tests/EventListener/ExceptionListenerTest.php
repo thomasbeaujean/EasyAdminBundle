@@ -13,20 +13,19 @@ namespace JavierEguiluz\Bundle\EasyAdminBundle\Tests\EventListener;
 
 use JavierEguiluz\Bundle\EasyAdminBundle\EventListener\ExceptionListener;
 use JavierEguiluz\Bundle\EasyAdminBundle\Exception\EntityNotFoundException as EasyEntityNotFoundException;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class ExceptionListenerTest extends \PHPUnit_Framework_TestCase
 {
     private function getTemplating()
     {
         $response = $this->getMockBuilder('Symfony\Component\HttpFoundation\Response')
-                         ->disableOriginalConstructor()
-                         ->getMock();
-        $templating = $this->getMockBuilder('\stdClass')
-                           ->disableOriginalConstructor()
-                           ->setMethods(array('renderResponse'))
-                           ->getMock();
-        $templating->method('renderResponse')
-                   ->willReturn($response);
+            ->disableOriginalConstructor()
+            ->getMock();
+        $templating = $this->getMockForAbstractClass('Symfony\Bundle\FrameworkBundle\Templating\EngineInterface');
+        $templating->method('renderResponse')->will($this->returnValue($response));
 
         return $templating;
     }
@@ -34,44 +33,39 @@ class ExceptionListenerTest extends \PHPUnit_Framework_TestCase
     private function getEventExceptionThatShouldBeCalledOnce($exception)
     {
         $event = $this->getMockBuilder('Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent')
-                           ->disableOriginalConstructor()
-                           ->getMock();
-        $event->method('getException')
-                ->willReturn($exception);
-        $event->expects($this->once())
-              ->method('setResponse');
+            ->disableOriginalConstructor()
+            ->getMock();
+        $event->method('getException')->willReturn($exception);
+        $event->method('getRequest')->willReturn(new Request());
+        $event->method('getKernel')->willReturn(new TestKernel());
+        $event->expects($this->once())->method('setResponse');
 
         return $event;
     }
 
     public function testCatchBaseExceptions()
     {
-        $exception = new EasyEntityNotFoundException(
-            array(
-                'entity' => array(
-                    'name' => 'Test',
-                    'primary_key_field_name' => 'Test key',
-                ),
-                'entity_id' => 2,
-            )
-        );
+        $exception = new EasyEntityNotFoundException(array(
+            'entity' => array(
+                'name' => 'Test',
+                'primary_key_field_name' => 'Test key',
+            ),
+            'entity_id' => 2,
+        ));
         $event = $this->getEventExceptionThatShouldBeCalledOnce($exception);
         $templating = $this->getTemplating();
-        $debug = false;
 
-        $listener = new ExceptionListener($templating, $debug);
+        $listener = new ExceptionListener($templating, 'easyadmin.listener.exception:showExceptionPageAction');
         $listener->onKernelException($event);
     }
 
     private function getEventExceptionThatShouldNotBeCalled($exception)
     {
         $event = $this->getMockBuilder('Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent')
-                           ->disableOriginalConstructor()
-                           ->getMock();
-        $event->method('getException')
-                ->willReturn($exception);
-        $event->expects($this->never())
-              ->method('setResponse');
+            ->disableOriginalConstructor()
+            ->getMock();
+        $event->method('getException')->willReturn($exception);
+        $event->expects($this->never())->method('setResponse');
 
         return $event;
     }
@@ -81,13 +75,20 @@ class ExceptionListenerTest extends \PHPUnit_Framework_TestCase
         $exception = new EntityNotFoundException();
         $event = $this->getEventExceptionThatShouldNotBeCalled($exception);
         $templating = $this->getTemplating();
-        $debug = false;
 
-        $listener = new ExceptionListener($templating, $debug);
+        $listener = new ExceptionListener($templating, 'easyadmin.listener.exception:showExceptionPageAction');
         $listener->onKernelException($event);
     }
 }
 
 class EntityNotFoundException extends \Exception
 {
+}
+
+class TestKernel implements HttpKernelInterface
+{
+    public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
+    {
+        return new Response('foo');
+    }
 }

@@ -1,15 +1,32 @@
 <?php
 
+/*
+ * This file is part of the EasyAdminBundle.
+ *
+ * (c) Javier Eguiluz <javier.eguiluz@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace JavierEguiluz\Bundle\EasyAdminBundle\Form\Type;
 
-use Doctrine\ORM\Mapping\ClassMetadataInfo;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use JavierEguiluz\Bundle\EasyAdminBundle\Configuration\Configurator;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormTypeGuesserInterface;
+use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
+/**
+ * Custom form type that deals with some of the logic used to render the
+ * forms used to create and edit EasyAdmin entities.
+ *
+ * @author Maxime Steinhausser <maxime.steinhausser@gmail.com>
+ */
 class EasyAdminFormType extends AbstractType
 {
     /** @var Configurator */
@@ -18,16 +35,24 @@ class EasyAdminFormType extends AbstractType
     /** @var array */
     private $config;
 
+    /** @var FormTypeGuesserInterface */
+    private $guesser;
+
     /**
-     * @param Configurator $configurator
-     * @param array        $config
+     * @param Configurator             $configurator
+     * @param array                    $config
+     * @param FormTypeGuesserInterface $guesser
      */
-    public function __construct(Configurator $configurator, array $config)
+    public function __construct(Configurator $configurator, array $config, FormTypeGuesserInterface $guesser)
     {
         $this->configurator = $configurator;
         $this->config = $config;
+        $this->guesser = $guesser;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $entity = $options['entity'];
@@ -39,10 +64,9 @@ class EasyAdminFormType extends AbstractType
             $formFieldOptions = $metadata['type_options'];
 
             if ('association' === $metadata['type']) {
-                // *-to-many associations are not supported yet
-                $toManyAssociations = array(ClassMetadataInfo::ONE_TO_MANY, ClassMetadataInfo::MANY_TO_MANY);
+                $toManyAssociations = array(ClassMetadata::ONE_TO_MANY, ClassMetadata::MANY_TO_MANY);
                 if (in_array($metadata['associationType'], $toManyAssociations)) {
-                    continue;
+                    $formFieldOptions['attr']['multiple'] = true;
                 }
 
                 // supported associations are displayed using advanced JavaScript widgets
@@ -58,10 +82,18 @@ class EasyAdminFormType extends AbstractType
                     $formFieldOptions['allow_delete'] = true;
                 }
 
-                if (version_compare(\Symfony\Component\HttpKernel\Kernel::VERSION, '2.5.0', '>=')) {
+                if (version_compare(Kernel::VERSION, '2.5.0', '>=')) {
                     if (!isset($formFieldOptions['delete_empty'])) {
                         $formFieldOptions['delete_empty'] = true;
                     }
+                }
+            } elseif ('checkbox' === $metadata['fieldType'] && !isset($formFieldOptions['required'])) {
+                $formFieldOptions['required'] = false;
+            }
+
+            if (!isset($formFieldOptions['required'])) {
+                if (null !== $guessRequired = $this->guesser->guessRequired($builder->getOption('data_class'), $name)) {
+                    $formFieldOptions['required'] = $guessRequired->getValue();
                 }
             }
 
@@ -69,7 +101,8 @@ class EasyAdminFormType extends AbstractType
             $formFieldOptions['attr']['field_css_class'] = $metadata['class'];
             $formFieldOptions['attr']['field_help'] = $metadata['help'];
 
-            $builder->add($name, $metadata['fieldType'], $formFieldOptions);
+            $formFieldType = $this->useLegacyFormComponent() ? $metadata['fieldType'] : $this->getFormTypeFqcn($metadata['fieldType']);
+            $builder->add($name, $formFieldType, $formFieldOptions);
         }
     }
 
@@ -91,19 +124,13 @@ class EasyAdminFormType extends AbstractType
                     return $entityConfig['class'];
                 },
             ))
-            ->setNormalizers(array(
-                'attr' => function (Options $options, $value) use ($config) {
-                    $formCssClass = array_reduce($config['design']['form_theme'], function ($previousClass, $formTheme) {
-                        return sprintf('theme-%s %s', strtolower(str_replace('.html.twig', '', basename($formTheme))), $previousClass);
-                    });
-
-                    return array_replace_recursive(array(
-                        'class' => $formCssClass,
-                        'id' => $options['view'].'-form',
-                    ), $value);
-                },
-            ))
             ->setRequired(array('entity', 'view'));
+
+        if ($this->useLegacyFormComponent()) {
+            $resolver->setNormalizers(array('attr' => $this->getAttributesNormalizer($config)));
+        } else {
+            $resolver->setNormalizer('attr', $this->getAttributesNormalizer($config));
+        }
     }
 
     // BC for SF < 2.7
@@ -115,8 +142,76 @@ class EasyAdminFormType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getBlockPrefix()
     {
         return 'easyadmin';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getName()
+    {
+        return $this->getBlockPrefix();
+    }
+
+    /**
+     * Returns a closure normalizing the form html attributes.
+     *
+     * @param array $config
+     *
+     * @return \Closure
+     */
+    private function getAttributesNormalizer(array $config)
+    {
+        return function (Options $options, $value) use ($config) {
+            $formCssClass = array_reduce($config['design']['form_theme'], function ($previousClass, $formTheme) {
+                return sprintf('theme-%s %s', strtolower(str_replace('.html.twig', '', basename($formTheme))), $previousClass);
+            });
+
+            return array_replace_recursive(array(
+                'class' => $formCssClass,
+                'id' => $options['view'].'-form',
+            ), $value);
+        };
+    }
+
+    /**
+     * It returns the FQCN of the given short type.
+     * Example: 'text' -> 'Symfony\Component\Form\Extension\Core\Type\TextType'
+     *
+     * @param string $shortType
+     *
+     * @return string
+     */
+    private function getFormTypeFqcn($shortType)
+    {
+        $typeNames = array(
+            'base', 'birthday', 'button', 'checkbox', 'choice', 'collection',
+            'country', 'currency', 'datetime', 'date', 'email', 'file', 'form',
+            'hidden', 'integer', 'language', 'money', 'number', 'password',
+            'percent', 'radio', 'repeated', 'reset', 'search', 'submit',
+            'textarea', 'text', 'time', 'timezone', 'url',
+        );
+
+        if (!in_array($shortType, $typeNames)) {
+            return $shortType;
+        }
+
+        // take into account the irregular class name for 'datetime' type
+        $typeClassName = 'datetime' === $shortType ? 'DateTime' : ucfirst($shortType);
+        $typeFqcn = sprintf('Symfony\\Component\\Form\\Extension\\Core\\Type\\%sType', $typeClassName);
+
+        return $typeFqcn;
+    }
+
+    /**
+     * Returns true if the legacy Form component is being used by the application.
+     *
+     * @return bool
+     */
+    private function useLegacyFormComponent()
+    {
+        return false === class_exists('Symfony\\Component\\Form\\Util\\StringUtil');
     }
 }

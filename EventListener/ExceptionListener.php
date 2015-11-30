@@ -12,44 +12,157 @@
 namespace JavierEguiluz\Bundle\EasyAdminBundle\EventListener;
 
 use JavierEguiluz\Bundle\EasyAdminBundle\Exception\BaseException;
+use JavierEguiluz\Bundle\EasyAdminBundle\Exception\FlattenException;
+use Psr\Log\LoggerInterface;
+use Symfony\Bundle\FrameworkBundle\Templating\EngineInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
+use Symfony\Component\HttpKernel\EventListener\ExceptionListener as BaseExceptionListener;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\HttpKernel\Log\DebugLoggerInterface;
 
-class ExceptionListener
+/**
+ * This listener allows to display customized error pages in the production
+ * environment.
+ *
+ * @author Javier Eguiluz <javier.eguiluz@gmail.com>
+ * @author Maxime Steinhausser <maxime.steinhausser@gmail.com>
+ */
+class ExceptionListener extends BaseExceptionListener
 {
+    /** @var EngineInterface */
     private $templating;
-    private $debug;
-    private $exceptionTemplates = array(
-        'ForbiddenActionException' => '@EasyAdmin/error/forbidden_action.html.twig',
-        'NoEntitiesConfigurationException' => '@EasyAdmin/error/no_entities.html.twig',
-        'UndefinedEntityException' => '@EasyAdmin/error/undefined_entity.html.twig',
-        'EntityNotFoundException' => '@EasyAdmin/error/entity_not_found.html.twig',
-    );
 
-    public function __construct($templating, $debug)
+    public function __construct(EngineInterface $templating, $controller, LoggerInterface $logger = null)
     {
         $this->templating = $templating;
-        $this->debug = $debug;
+
+        parent::__construct($controller, $logger);
     }
 
     public function onKernelException(GetResponseForExceptionEvent $event)
     {
-        // in 'dev' environment, don't override Symfony's exception pages
-        if (true === $this->debug) {
-            return $event->getException()->getMessage();
-        }
-
-        /** @var BaseException $exception */
         $exception = $event->getException();
-        $exceptionClassName = basename(str_replace('\\', '/', get_class($exception)));
 
-        if (!$exception instanceof BaseException || !array_key_exists($exceptionClassName, $this->exceptionTemplates)) {
+        if (!$exception instanceof BaseException) {
             return;
         }
 
-        $templatePath = $this->exceptionTemplates[$exceptionClassName];
-        $parameters = array_merge($exception->getParameters(), array('message' => $exception->getMessage()));
-        $response = $this->templating->renderResponse($templatePath, $parameters);
+        if (!$this->isLegacySymfony()) {
+            parent::onKernelException($event);
+        } else {
+            $response = $this->legacyOnKernelException($event);
+            $event->setResponse($response);
+        }
+    }
 
-        $event->setResponse($response);
+    public function showExceptionPageAction(FlattenException $exception)
+    {
+        return $this->templating->renderResponse(
+            '@EasyAdmin/default/exception.html.twig',
+            array('exception' => $exception),
+            Response::create()->setStatusCode($exception->getStatusCode())
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function logException(\Exception $exception, $message, $original = true)
+    {
+        if (null !== $this->logger) {
+            /** @var BaseException $exception */
+            if ($exception->getStatusCode() >= 500) {
+                $this->logger->critical($message, array('exception' => $exception));
+            } else {
+                $this->logger->error($message, array('exception' => $exception));
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function duplicateRequest(\Exception $exception, Request $request)
+    {
+        if (!$this->isLegacySymfony()) {
+            $request = parent::duplicateRequest($exception, $request);
+        } else {
+            $request = $this->legacyDuplicateRequest($request);
+        }
+
+        $request->attributes->set('exception', FlattenException::create($exception));
+
+        return $request;
+    }
+
+    /**
+     * Utility method needed for BC reasons with Symfony 2.3
+     * Code copied from Symfony\Component\HttpKernel\EventListener\ExceptionListener
+     *
+     * @param GetResponseForExceptionEvent $event
+     *
+     * @return Response
+     */
+    private function legacyOnKernelException(GetResponseForExceptionEvent $event)
+    {
+        $exception = $event->getException();
+
+        $this->logException($exception, sprintf('Uncaught PHP Exception %s: "%s" at %s line %s', get_class($exception), $exception->getMessage(), $exception->getFile(), $exception->getLine()));
+
+        $request = $this->duplicateRequest($exception, $event->getRequest());
+
+        try {
+            return $event->getKernel()->handle($request, HttpKernelInterface::SUB_REQUEST, false);
+        } catch (\Exception $e) {
+            $this->logException($e, sprintf('Exception thrown when handling an exception (%s: %s at %s line %s)', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()));
+
+            $wrapper = $e;
+
+            while ($prev = $wrapper->getPrevious()) {
+                if ($exception === $wrapper = $prev) {
+                    throw $e;
+                }
+            }
+
+            $prev = new \ReflectionProperty('Exception', 'previous');
+            $prev->setAccessible(true);
+            $prev->setValue($wrapper, $exception);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Utility method needed for BC reasons with Symfony 2.3
+     * Code copied from Symfony\Component\HttpKernel\EventListener\ExceptionListener.
+     *
+     * @param Request $request
+     *
+     * @return Request
+     */
+    private function legacyDuplicateRequest(Request $request)
+    {
+        $attributes = array(
+            '_controller' => $this->controller,
+            'logger' => $this->logger instanceof DebugLoggerInterface ? $this->logger : null,
+            'format' => $request->getRequestFormat(),
+        );
+        $request = $request->duplicate(null, null, $attributes);
+        $request->setMethod('GET');
+
+        return $request;
+    }
+
+    /**
+     * Returns true if Symfony version is considered legacy (e.g. 2.3)
+     *
+     * @return bool
+     */
+    private function isLegacySymfony()
+    {
+        return 2 === Kernel::MAJOR_VERSION && 3 === Kernel::MINOR_VERSION;
     }
 }

@@ -28,8 +28,10 @@
 
         <service id="easyadmin.listener.exception" class="JavierEguiluz\Bundle\EasyAdminBundle\EventListener\ExceptionListener">
             <argument type="service" id="templating" />
-            <argument>%kernel.debug%</argument>
-            <tag name="kernel.event_listener" event="kernel.exception" method="onKernelException" />
+            <argument type="string">easyadmin.listener.exception:showExceptionPageAction</argument>
+            <argument type="service" id="logger" on-invalid="null" />
+            <tag name="monolog.logger" channel="request" />
+            <tag name="kernel.event_listener" event="kernel.exception" method="onKernelException" priority="-64" />
         </service>
 
         <service id="easyadmin.data_collector" class="JavierEguiluz\Bundle\EasyAdminBundle\DataCollector\EasyAdminDataCollector" public="false">
@@ -40,21 +42,18 @@
         <service id="easyadmin.form.type" class="JavierEguiluz\Bundle\EasyAdminBundle\Form\Type\EasyAdminFormType">
             <argument type="service" id="easyadmin.configurator" />
             <argument>%easyadmin.config%</argument>
+            <argument /> <!-- type guesser chain -->
             <tag name="form.type" alias="easyadmin" />
         </service>
 
         <service id="easyadmin.form.type.extension" class="JavierEguiluz\Bundle\EasyAdminBundle\Form\Extension\EasyAdminExtension">
-            <call method="setRequest">
-                <argument type="service" id="request" on-invalid="null" strict="false" />
-            </call>
-            <tag name="form.type_extension" alias="form" />
+            <argument type="service" id="request_stack" on-invalid="null" />
+            <tag name="form.type_extension" alias="form" extended-type="Symfony\Component\Form\Extension\Core\Type\FormType" />
         </service>
 
         <service id="easyadmin.listener.request_post_initialize" class="JavierEguiluz\Bundle\EasyAdminBundle\EventListener\RequestPostInitializeListener">
             <argument type="service" id="doctrine" />
-            <call method="setRequest">
-                <argument type="service" id="request" on-invalid="null" strict="false" />
-            </call>
+            <argument type="service" id="request_stack" on-invalid="null" />
             <tag name="kernel.event_listener" event="easy_admin.post_initialize" method="initializeRequest" />
         </service>
     </services>

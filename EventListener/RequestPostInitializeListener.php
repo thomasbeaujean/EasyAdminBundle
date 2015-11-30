@@ -6,21 +6,33 @@ use Doctrine\Bundle\DoctrineBundle\Registry;
 use JavierEguiluz\Bundle\EasyAdminBundle\Exception\EntityNotFoundException;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * Adds some custom attributes to the request object to store information
+ * related to EasyAdmin.
+ *
+ * @author Maxime Steinhausser <maxime.steinhausser@gmail.com>
+ */
 class RequestPostInitializeListener
 {
     /** @var Request|null */
     private $request;
 
+    /** @var RequestStack|null */
+    private $requestStack;
+
     /** @var Registry */
     private $doctrine;
 
     /**
-     * @param Registry $doctrine
+     * @param Registry          $doctrine
+     * @param RequestStack|null $requestStack
      */
-    public function __construct(Registry $doctrine)
+    public function __construct(Registry $doctrine, RequestStack $requestStack = null)
     {
         $this->doctrine = $doctrine;
+        $this->requestStack = $requestStack;
     }
 
     /**
@@ -38,6 +50,10 @@ class RequestPostInitializeListener
 
     public function initializeRequest(GenericEvent $event)
     {
+        if (null !== $this->requestStack) {
+            $this->request = $this->requestStack->getCurrentRequest();
+        }
+
         if (null === $this->request) {
             return;
         }
@@ -52,17 +68,17 @@ class RequestPostInitializeListener
     /**
      * Looks for the object that corresponds to the selected 'id' of the current entity.
      *
-     * @param array $entity
-     * @param mixed $id
+     * @param array $entityConfig
+     * @param mixed $itemId
      *
      * @return object The entity
      *
      * @throws EntityNotFoundException
      */
-    private function findCurrentItem(array $entity, $id)
+    private function findCurrentItem(array $entityConfig, $itemId)
     {
-        if (!$entity = $this->doctrine->getRepository($entity['class'])->find($id)) {
-            throw new EntityNotFoundException(array('entity' => $entity, 'entity_id' => $id));
+        if (null === $entity = $this->doctrine->getRepository($entityConfig['class'])->find($itemId)) {
+            throw new EntityNotFoundException(array('entity' => $entityConfig, 'entity_id' => $itemId));
         }
 
         return $entity;

@@ -15,7 +15,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 use JavierEguiluz\Bundle\EasyAdminBundle\Configuration\Configurator;
+use Symfony\Component\VarDumper\Cloner\VarCloner;
+use Symfony\Component\VarDumper\Dumper\HtmlDumper;
+use Symfony\Component\Yaml\Yaml;
 
+/**
+ * Collects information about the requests related to EasyAdmin and displays
+ * it both in the web debug toolbar and in the profiler.
+ *
+ * @author Javier Eguiluz <javier.eguiluz@gmail.com>
+ */
 class EasyAdminDataCollector extends DataCollector
 {
     private $configurator;
@@ -41,7 +50,8 @@ class EasyAdminDataCollector extends DataCollector
 
     private function getEasyAdminParameters(Request $request)
     {
-        if ('admin' !== $request->attributes->get('_route')) {
+        // 'admin' is the deprecated route name that will be removed in version 2.0.
+        if (!in_array($request->attributes->get('_route'), array('easyadmin', 'admin'))) {
             return;
         }
 
@@ -72,6 +82,29 @@ class EasyAdminDataCollector extends DataCollector
     public function getBackendConfiguration()
     {
         return $this->data['backend_configuration'];
+    }
+
+    /**
+     * It dumps the contents of the given variable. It tries several dumpers in
+     * turn (VarDumper component, Yaml::dump, etc.) and if none is available, it
+     * fallbacks to PHP's var_export().
+     *
+     * @param mixed $variable
+     *
+     * @return string
+     */
+    public function dump($variable)
+    {
+        if (class_exists('Symfony\Component\VarDumper\Dumper\HtmlDumper')) {
+            $cloner = new VarCloner();
+            $dumper = new HtmlDumper();
+
+            return $dumper->dump($cloner->cloneVar($variable));
+        } elseif (class_exists('Symfony\Component\Yaml\Yaml')) {
+            return sprintf('<pre class="sf-dump">%s</pre>', Yaml::dump((array) $variable, 1024));
+        } else {
+            return sprintf('<pre class="sf-dump">%s</pre>', var_export($variable, true));
+        }
     }
 
     public function getName()

@@ -361,6 +361,19 @@ button.btn-danger {
     margin-bottom: .5em;
 }
 
+.nullable-control {
+    padding-top: 5px;
+}
+
+/* Field: collection
+   ------------------------------------------------------------------------- */
+.field-collection .collection-empty {
+    margin: .5em 0;
+}
+.field-collection .collection-empty .label-empty {
+    color: {{ colors.gray_dark }};
+}
+
 /* Select2 widget
    ------------------------------------------------------------------------- */
 .select2-container--bootstrap .select2-selection {
@@ -739,7 +752,6 @@ body.show .form-control {
     height: auto;
 }
 body.show .form-control.text {
-    height: auto;
     min-height: 34px;
     max-height: 250px;
     overflow-y: auto;
@@ -767,35 +779,12 @@ body.error .error-description h1 {
     padding: 15px;
     text-transform: uppercase;
 }
-body.error .error-problem code {
-    color: {{ colors.danger }};
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: bold;
-}
-body.error .error-problem,
-body.error .error-solution {
+body.error .error-message {
     padding: 15px;
 }
-body.error .error-problem p.lead {
+body.error .error-message p.lead {
     margin-bottom: 0;
     padding-bottom: .5em;
-}
-body.error .error-solution {
-    border-top: 2px dashed {{ colors.gray_light }};
-}
-body.error .error-solution h2 {
-    margin-top: .5em;
-}
-body.error .error-solution code {
-    color: {{ colors.success }};
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: bold;
-}
-body.error .error-solution pre {
-    background: none;
-    border: 0;
 }
 
 /* =========================================================================

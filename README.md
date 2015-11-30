@@ -8,9 +8,14 @@ to learn about the new features and read the [UPGRADE guide](https://github.com/
 EasyAdmin
 =========
 
+[![Vote for EasyAdminBundle as the Best 2015 Symfony Bundle](https://cloud.githubusercontent.com/assets/73419/11368497/7465835a-92ba-11e5-8550-90a9e9ef93f7.png)](http://awards.symfony.com)
+
+-----
+
 [![Build Status](https://travis-ci.org/javiereguiluz/EasyAdminBundle.svg?branch=master)](https://travis-ci.org/javiereguiluz/EasyAdminBundle)
 [![SensioLabsInsight](https://insight.sensiolabs.com/projects/a3bfb8d9-7b2d-47ab-a95f-382af395bd51/mini.png)](https://insight.sensiolabs.com/projects/a3bfb8d9-7b2d-47ab-a95f-382af395bd51)
 [![Coverage Status](https://coveralls.io/repos/javiereguiluz/EasyAdminBundle/badge.svg?branch=master)](https://coveralls.io/r/javiereguiluz/EasyAdminBundle?branch=master)
+<sup><kbd>**SUPPORTS SYMFONY 2.x and 3.x**</kbd></sup>
 
 <img src="https://cloud.githubusercontent.com/assets/73419/5748254/e0697de0-9c3e-11e4-8b42-792a25538676.png" alt="EasyAdmin creates Symfony Backends" title="EasyAdmin" align="right" />
 
@@ -30,7 +35,7 @@ with unprecedented simplicity.
   * Symfony 2.3+ applications (Silex not supported).
   * Doctrine ORM entities (Doctrine ODM and Propel not supported).
   * Entities with simple primary keys (composite keys not supported).
-  * All kinds of entity associations are supported, except `many-to-many`.
+  * All kinds of entity associations are supported.
   * Entities using inheritance are not supported.
 
 Documentation
@@ -55,7 +60,7 @@ Documentation
 
 > **❮ NOTE ❯** you are reading the documentation of the bundle's **development**
 > version. You can also [read the documentation of the latest stable version ➜]
-> (https://github.com/javiereguiluz/EasyAdminBundle/tree/v1.7.2/).
+> (https://github.com/javiereguiluz/EasyAdminBundle/tree/v1.9.4/).
 
 #### Demo Application
 
