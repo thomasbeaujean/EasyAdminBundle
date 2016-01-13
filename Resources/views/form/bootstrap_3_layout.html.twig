@@ -1,7 +1,43 @@
 {% use "form_div_layout.html.twig" %}
 {% trans_default_domain "EasyAdminBundle" %}
 
+{% block form_start -%}
+    {% if 'easyadmin' == block_prefixes|slice(-2)|first %}
+        {% set attr = attr|merge({
+            'data-view': easyadmin.view,
+            'data-entity': easyadmin.entity.name,
+            'data-entity-id': attribute(value, easyadmin.entity.primary_key_field_name),
+        }) %}
+    {% endif %}
+
+    {{- parent() -}}
+{%- endblock form_start %}
+
 {# Widgets #}
+
+{% block form_widget %}
+    {{- parent() -}}
+
+    {% if form.parent.vars.allow_delete|default(false) %}
+        {% set remove_item_javascript %}
+            $(function() {
+            if (event.preventDefault) event.preventDefault(); else event.returnValue = false;
+
+            var containerDiv = $('#{{ id }}').parents('.form-group:first');
+            containerDiv.remove();
+            });
+        {% endset %}
+
+        <div class="form-group field-collection-item-action">
+            <div class="col-sm-12">
+                <a href="#" onclick="{{ remove_item_javascript|raw }}" class="pull-right text-danger">
+                    <i class="fa fa-remove"></i>
+                    {{ 'action.remove_item'|trans }}
+                </a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock form_widget %}
 
 {% block form_widget_simple -%}
     {% if type is not defined or 'file' != type %}
@@ -178,8 +214,8 @@
 {# Rows #}
 
 {% block form_row -%}
-    {% set _field_type = attr.field_type|default('default') %}
-    <div class="form-group {% if (not compound or force_error|default(false)) and not valid %}has-error{% endif %} field-{{ _field_type }} {{ attr.field_css_class|default('') }}">
+    {% set _field_type = easyadmin.field.fieldType|default('default') %}
+    <div class="form-group {% if (not compound or force_error|default(false)) and not valid %}has-error{% endif %} field-{{ block_prefixes|slice(-2)|first }}">
 
         {% set _trans_parameters = { '%entity_name%':  easyadmin.entity.name|trans, '%entity_label%': easyadmin.entity.label|trans } %}
         {% set _field_label = easyadmin.field['label']|default(null) %}
@@ -198,15 +234,15 @@
 
         {{- form_errors(form) -}}
 
-        {% if attr.field_help|default('') != '' %}
-            <span class="help-block"><i class="fa fa-info-circle"></i> {{ attr.field_help|trans|raw }}</span>
+        {% if easyadmin.field.help|default('') != '' %}
+            <span class="help-block"><i class="fa fa-info-circle"></i> {{ easyadmin.field.help|trans|raw }}</span>
         {% endif %}
     </div>
 {%- endblock form_row %}
 
 
 {% block button_row -%}
-    <div class="form-group field-{{ attr.field_type|default('default') }} {{ attr.field_css_class|default('') }}">
+    <div class="form-group field-{{ block_prefixes|slice(-2)|first }} {{ easyadmin.field.css_class|default('') }}">
         {{- form_widget(form) -}}
     </div>
 {%- endblock button_row %}
@@ -232,14 +268,14 @@
 {%- endblock datetime_row %}
 
 {% block checkbox_row -%}
-    <div class="form-group {% if not valid %}has-error{% endif %} field-{{ attr.field_type|default('default') }} {{ attr.field_css_class|default('') }}">
+    <div class="form-group {% if not valid %}has-error{% endif %} field-{{ block_prefixes|slice(-2)|first }}">
         {{- form_widget(form) -}}
         {{- form_errors(form) -}}
     </div>
 {%- endblock checkbox_row %}
 
 {% block radio_row -%}
-    <div class="form-group {% if not valid %}has-error{% endif %} field-{{ attr.field_type|default('default') }} {{ attr.field_css_class|default('') }}">
+    <div class="form-group {% if not valid %}has-error{% endif %} field-{{ block_prefixes|slice(-2)|first }}">
         {{- form_widget(form) -}}
         {{- form_errors(form) -}}
     </div>
@@ -272,24 +308,6 @@
     {% endif %}
 
     {{ parent() }}
-
-    {% if form.parent.vars.allow_delete|default(false) %}
-        {% set remove_item_javascript %}
-            $(function() {
-                if (event.preventDefault) event.preventDefault(); else event.returnValue = false;
-
-                var containerDiv = $('#{{ id }}').parents('.form-group:first');
-                containerDiv.remove();
-            });
-        {% endset %}
-
-        <div class="form-group">
-            <a href="#" onclick="{{ remove_item_javascript|raw }}" class="col-sm-12 text-right">
-                <i class="fa fa-remove"></i>
-                {{ 'action.remove_item'|trans }}
-            </a>
-        </div>
-    {% endif %}
 {%- endblock form_widget_compound -%}
 
 {# Easy admin form type #}
@@ -332,7 +350,7 @@
 
                             <a class="btn {{ _action.css_class|default('') }}" href="{{ _action_href }}">
                                 {% if _action.icon %}<i class="fa fa-{{ _action.icon }}"></i>{% endif %}
-                                {{ _action.label|trans(_trans_parameters) }}
+                                {{ _action.label is defined and not _action.label is empty ? _action.label|trans(_trans_parameters, 'messages') }}
                             </a>
                         {% endfor %}
 
@@ -340,9 +358,9 @@
                             {% if easyadmin_action_is_enabled_for_edit_view('delete', easyadmin.entity.name) %}
                                 {% set _action = easyadmin_get_action_for_edit_view('delete', easyadmin.entity.name) %}
                                 <button type="button" id="button-delete"
-                                        class="btn {{ _action.css_class|default('btn-danger') }}">
+                                        class="btn {{ _action.css_class|default('') }}">
                                     {% if _action.icon %}<i class="fa fa-{{ _action.icon }}"></i>{% endif %}
-                                    {{ _action.label|default('action.delete')|trans(_trans_parameters, 'messages') }}
+                                    {{ _action.label is defined and not _action.label is empty ? _action.label|trans(_trans_parameters, 'messages') }}
                                 </button>
                             {% endif %}
                         {% endif %}
@@ -358,7 +376,7 @@
                             <a class="btn btn-secondary"
                                href="{{ app.request.query.has('referer') ? app.request.query.get('referer')|easyadmin_urldecode : path('easyadmin', ({ entity: easyadmin.entity.name, action: _list_action.name, view: easyadmin.view }) ) }}">{% spaceless %}
                                     {% if _list_action.icon %}<i class="fa fa-{{ _list_action.icon }}"></i>{% endif %}
-                                    {{ _list_action.label|default('action.list')|trans(_trans_parameters, 'messages') }}
+                                    {{ _list_action.label is defined and not _list_action.label is empty ? _list_action.label|trans(_trans_parameters, 'messages') }}
                                 {% endspaceless %}</a>
                         {% endif %}
                     {% endblock item_actions %}

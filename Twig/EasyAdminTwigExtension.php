@@ -11,8 +11,9 @@
 
 namespace JavierEguiluz\Bundle\EasyAdminBundle\Twig;
 
-use Doctrine\ORM\PersistentCollection;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use JavierEguiluz\Bundle\EasyAdminBundle\Configuration\Configurator;
+use Symfony\Component\PropertyAccess\PropertyAccessor;
 
 /**
  * Defines the filters and functions used to render the bundle's templates.
@@ -22,11 +23,13 @@ use JavierEguiluz\Bundle\EasyAdminBundle\Configuration\Configurator;
 class EasyAdminTwigExtension extends \Twig_Extension
 {
     private $configurator;
+    private $accessor;
     private $debug;
 
-    public function __construct(Configurator $configurator, $debug = false)
+    public function __construct(Configurator $configurator, PropertyAccessor $accessor, $debug = false)
     {
         $this->configurator = $configurator;
+        $this->accessor = $accessor;
         $this->debug = $debug;
     }
 
@@ -36,7 +39,9 @@ class EasyAdminTwigExtension extends \Twig_Extension
             new \Twig_SimpleFunction('easyadmin_render_field_for_*_view', array($this, 'renderEntityField'), array('is_safe' => array('html'), 'needs_environment' => true)),
             new \Twig_SimpleFunction('easyadmin_config', array($this, 'getBackendConfiguration')),
             new \Twig_SimpleFunction('easyadmin_entity', array($this, 'getEntityConfiguration')),
+            new \Twig_SimpleFunction('easyadmin_action_is_enabled', array($this, 'isActionEnabled')),
             new \Twig_SimpleFunction('easyadmin_action_is_enabled_for_*_view', array($this, 'isActionEnabled')),
+            new \Twig_SimpleFunction('easyadmin_get_action', array($this, 'getActionConfiguration')),
             new \Twig_SimpleFunction('easyadmin_get_action_for_*_view', array($this, 'getActionConfiguration')),
             new \Twig_SimpleFunction('easyadmin_get_actions_for_*_item', array($this, 'getActionsForItem')),
         );
@@ -108,13 +113,13 @@ class EasyAdminTwigExtension extends \Twig_Extension
     public function renderEntityField(\Twig_Environment $twig, $view, $entityName, $item, array $fieldMetadata)
     {
         $entityConfiguration = $this->configurator->getEntityConfiguration($entityName);
+        $fieldName = $fieldMetadata['property'];
 
-        if (!$fieldMetadata['isReadable']) {
+        try {
+            $value = $this->accessor->getValue($item, $fieldName);
+        } catch (\Exception $e) {
             return $twig->render($entityConfiguration['templates']['label_inaccessible'], array('view' => $view));
         }
-
-        $fieldName = $fieldMetadata['property'];
-        $value = (null !== $getter = $fieldMetadata['getter']) ? $item->{$getter}() : $item->{$fieldName};
 
         try {
             $fieldType = $fieldMetadata['dataType'];
@@ -134,7 +139,7 @@ class EasyAdminTwigExtension extends \Twig_Extension
                 $templateParameters['value'] = strval($value);
             }
 
-            if (in_array($fieldType, array('image'))) {
+            if ('image' === $fieldType) {
                 // absolute URLs (http or https) and protocol-relative URLs (//) are rendered unmodified
                 if (1 === preg_match('/^(http[s]?|\/\/).*/i', $value)) {
                     $imageUrl = $value;
@@ -150,25 +155,27 @@ class EasyAdminTwigExtension extends \Twig_Extension
                 return $twig->render($entityConfiguration['templates']['label_empty'], $templateParameters);
             }
 
-            if (in_array($fieldType, array('association')) && !$value instanceof PersistentCollection) {
-                $targetEntityClassName = $this->getClassShortName($fieldMetadata['targetEntity']);
-                $targetEntityConfig = $this->getEntityConfiguration($targetEntityClassName);
-                $targetEntityPrimaryKeyGetter = (null !== $targetEntityConfig) ? 'get'.ucfirst($targetEntityConfig['primary_key_field_name']) : null;
-
-                // get the most appropriate string representation for the
-                // associated value (this depends on the target entity methods)
-                if (method_exists($value, '__toString')) {
-                    $templateParameters['value'] = (string) $value;
-                } elseif (method_exists($value, $targetEntityPrimaryKeyGetter)) {
-                    $templateParameters['value'] = sprintf('%s #%s', $targetEntityConfig['name'], $value->$targetEntityPrimaryKeyGetter());
-                } else {
-                    $templateParameters['value'] = $this->getClassShortName(get_class($value));
+            if ('association' === $fieldType && ($fieldMetadata['associationType'] & ClassMetadata::TO_ONE)) {
+                try {
+                    $targetEntityClassName = $this->getClassShortName($fieldMetadata['targetEntity']);
+                    $targetEntityConfig = $this->getEntityConfiguration($targetEntityClassName);
+                    $primaryKeyValue = $this->accessor->getValue($value, $targetEntityConfig['primary_key_field_name']);
+                } catch (\Exception $e) {
+                    // the try..catch block is needed because we can't use the
+                    // $accessor->isReadable(), which is unavailable in Symfony 2.3
+                    $templateParameters['value'] = $targetEntityClassName;
                 }
 
-                // if the target entity has a primary key getter, it's displayed
-                // as a link pointing to its 'show' view
-                if (method_exists($value, $targetEntityPrimaryKeyGetter)) {
-                    $templateParameters['link_parameters'] = array('entity' => $targetEntityConfig['name'], 'action' => 'show', 'view' => $view, 'id' => $value->$targetEntityPrimaryKeyGetter());
+                // get the string representation of the associated entity
+                if (method_exists($value, '__toString')) {
+                    $templateParameters['value'] = (string) $value;
+                } elseif (isset($primaryKeyValue)) {
+                    $templateParameters['value'] = sprintf('%s #%s', $targetEntityConfig['name'], $primaryKeyValue);
+                }
+
+                // if the associated entity is managed by EasyAdmin, display a link to it
+                if (null !== $targetEntityConfig && isset($primaryKeyValue)) {
+                    $templateParameters['link_parameters'] = array('entity' => $targetEntityConfig['name'], 'action' => 'show', 'id' => $primaryKeyValue);
                 }
             }
 
@@ -235,7 +242,7 @@ class EasyAdminTwigExtension extends \Twig_Extension
         // in the 'list' view). Those special actions shouldn't be displayed for
         // each item as a regular action.
         $actionsExcludedForItems = array(
-            'list' => array('delete', 'list', 'new', 'search'),
+            'list' => array('list', 'new', 'search'),
             'edit' => array('list', 'delete'),
             'new' => array('list'),
             'show' => array('list', 'delete'),

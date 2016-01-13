@@ -343,14 +343,14 @@ class DefaultBackendTest extends AbstractTestCase
         $this->assertEquals('Edit Category (#200)', trim($crawler->filter('h1.title')->text()));
     }
 
-    public function testEditViewFormClasses()
+    public function testEditViewFormAttributes()
     {
         $crawler = $this->requestEditView();
-        $formClasses = array('theme-bootstrap_3_horizontal_layout', 'form-horizontal');
+        $form = $crawler->filter('#main form')->eq(0);
 
-        foreach ($formClasses as $cssClass) {
-            $this->assertContains($cssClass, trim($crawler->filter('#main form')->eq(0)->attr('class')));
-        }
+        $this->assertSame('edit', trim($form->attr('data-view')));
+        $this->assertSame('Category', trim($form->attr('data-entity')));
+        $this->assertSame('200', trim($form->attr('data-entity-id')));
     }
 
     public function testEditViewFieldLabels()
@@ -366,7 +366,7 @@ class DefaultBackendTest extends AbstractTestCase
     public function testEditViewFieldClasses()
     {
         $crawler = $this->requestEditView();
-        $fieldClasses = array('text', 'default');
+        $fieldClasses = array('text', 'entity');
 
         foreach ($fieldClasses as $i => $cssClass) {
             $this->assertContains('field-'.$cssClass, trim($crawler->filter('#main .form-group')->eq($i)->attr('class')));
@@ -427,14 +427,14 @@ class DefaultBackendTest extends AbstractTestCase
         $this->assertEquals('Create Category', trim($crawler->filter('h1.title')->text()));
     }
 
-    public function testNewViewFormClasses()
+    public function testNewViewFormAttributes()
     {
         $crawler = $this->requestNewView();
-        $formClasses = array('theme-bootstrap_3_horizontal_layout', 'form-horizontal');
+        $form = $crawler->filter('#main form')->eq(0);
 
-        foreach ($formClasses as $cssClass) {
-            $this->assertContains($cssClass, trim($crawler->filter('#main form')->eq(0)->attr('class')));
-        }
+        $this->assertSame('new', trim($form->attr('data-view')));
+        $this->assertSame('Category', trim($form->attr('data-entity')));
+        $this->assertEmpty($form->attr('data-entity-id'));
     }
 
     public function testNewViewFieldLabels()
@@ -450,7 +450,7 @@ class DefaultBackendTest extends AbstractTestCase
     public function testNewViewFieldClasses()
     {
         $crawler = $this->requestNewView();
-        $fieldClasses = array('text', 'default');
+        $fieldClasses = array('text', 'entity');
 
         foreach ($fieldClasses as $i => $cssClass) {
             $this->assertContains('field-'.$cssClass, trim($crawler->filter('#main .form-group')->eq($i)->attr('class')));

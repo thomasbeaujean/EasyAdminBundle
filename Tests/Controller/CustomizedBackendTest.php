@@ -67,7 +67,7 @@ class CustomizedBackendTest extends AbstractTestCase
         $crawler = $this->requestListView();
 
         $this->assertEquals('New Category', trim($crawler->filter('#content-actions a.btn')->text()));
-        $this->assertEquals('btn custom_class_new', $crawler->filter('#content-actions a.btn')->attr('class'));
+        $this->assertEquals('btn custom_class_new action-new', $crawler->filter('#content-actions a.btn')->attr('class'));
         $this->assertEquals('fa fa-plus-circle', $crawler->filter('#content-actions a.btn i')->attr('class'));
         $this->assertStringStartsWith('/admin/?action=new&entity=Category&sortField=id&sortDirection=DESC&page=1', $crawler->filter('#content-actions a.btn')->attr('href'));
     }
@@ -272,14 +272,14 @@ class CustomizedBackendTest extends AbstractTestCase
         $this->assertEquals('Modify Category (200) details', trim($crawler->filter('h1.title')->text()));
     }
 
-    public function testEditViewFormClasses()
+    public function testEditViewFormAttributes()
     {
         $crawler = $this->requestEditView();
-        $formClasses = array('theme-bootstrap_3_horizontal_layout', 'form-horizontal');
+        $form = $crawler->filter('#main form')->eq(0);
 
-        foreach ($formClasses as $cssClass) {
-            $this->assertContains($cssClass, trim($crawler->filter('#main form')->eq(0)->attr('class')));
-        }
+        $this->assertSame('edit', trim($form->attr('data-view')));
+        $this->assertSame('Category', trim($form->attr('data-entity')));
+        $this->assertSame('200', trim($form->attr('data-entity-id')));
     }
 
     public function testEditViewFieldLabels()
@@ -295,8 +295,8 @@ class CustomizedBackendTest extends AbstractTestCase
     public function testEditViewFieldClasses()
     {
         $crawler = $this->requestEditView();
-        $fieldDefaultClasses = array('integer', 'text', 'default');
-        $fieldCustomClasses = array('integer', 'text', 'default');
+        $fieldDefaultClasses = array('integer', 'text', 'entity');
+        $fieldCustomClasses = array('integer', 'text', 'entity');
 
         foreach ($fieldDefaultClasses as $i => $cssClass) {
             $this->assertContains('field-'.$cssClass, trim($crawler->filter('#main .form-group')->eq($i)->attr('class')));
@@ -361,14 +361,14 @@ class CustomizedBackendTest extends AbstractTestCase
         $this->assertEquals('Add a new Category', trim($crawler->filter('h1.title')->text()));
     }
 
-    public function testNewViewFormClasses()
+    public function testNewViewFormAttributes()
     {
         $crawler = $this->requestNewView();
-        $formClasses = array('theme-bootstrap_3_horizontal_layout', 'form-horizontal');
+        $form = $crawler->filter('#main form')->eq(0);
 
-        foreach ($formClasses as $cssClass) {
-            $this->assertContains($cssClass, trim($crawler->filter('#main form')->eq(0)->attr('class')));
-        }
+        $this->assertSame('new', trim($form->attr('data-view')));
+        $this->assertSame('Category', trim($form->attr('data-entity')));
+        $this->assertEmpty($form->attr('data-entity-id'));
     }
 
     public function testNewViewFieldLabels()
@@ -384,7 +384,7 @@ class CustomizedBackendTest extends AbstractTestCase
     public function testNewViewFieldClasses()
     {
         $crawler = $this->requestNewView();
-        $fieldClasses = array('integer', 'text', 'default');
+        $fieldClasses = array('integer', 'text', 'entity');
 
         foreach ($fieldClasses as $i => $cssClass) {
             $this->assertContains('field-'.$cssClass, trim($crawler->filter('#main .form-group')->eq($i)->attr('class')));
@@ -435,7 +435,7 @@ class CustomizedBackendTest extends AbstractTestCase
         $this->assertSame(200, $this->client->getResponse()->getStatusCode());
 
         // test 'novalidate' attribute
-        $this->assertSame('novalidate', $crawler->filter('#new-form')->first()->attr('novalidate'));
+        $this->assertSame('novalidate', $crawler->filter('#new-category-form')->first()->attr('novalidate'));
 
         $form = $crawler->selectButton('Save changes')->form();
         $form->remove('form[name]');
@@ -578,7 +578,7 @@ class CustomizedBackendTest extends AbstractTestCase
 
         $this->assertCount(15, $crawler->filter('.table tbody td:contains("Inaccessible")'));
 
-        $this->assertEquals('thisFieldIsVirtual', $crawler->filter('.table tbody td:contains("Inaccessible")')->first()->attr('data-label'));
+        $this->assertEquals('This field is virtual', $crawler->filter('.table tbody td:contains("Inaccessible")')->first()->attr('data-label'));
 
         $firstVirtualField = $crawler->filter('.table tbody td:contains("Inaccessible") span')->first();
         $this->assertEquals('label label-danger', $firstVirtualField->attr('class'));
